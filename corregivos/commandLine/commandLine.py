@@ -85,7 +85,10 @@ class FileOrValue(SetType):
 
 class Yaml:
     def __call__(self, arg):
-        return yaml.safe_load(arg)
+        if arg.endswith(".yaml"):
+            return {} #default value was a inexistent path, transform to empty dict
+        else:
+            return yaml.safe_load(arg)
 
 class CommandLine:
 
