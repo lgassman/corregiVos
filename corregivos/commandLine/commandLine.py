@@ -104,10 +104,16 @@ class CommandLine:
     
     def _new(self, args):
         return self
+    
+    def add_argument(self, *args, **kwargs):
+        if "action" not in kwargs:
+            kwargs["action"] = Set
+            kwargs["holder"] = self
+        self.arg_parser.add_argument(*args, **kwargs)
 
     def _add_args(self):
-        self.arg_parser.add_argument("--dir", action=Set, holder=self, type=Folder(create=True), help="Destination directory", default="~")
-        self.arg_parser.add_argument("--config", action=Set, holder=self, type=FileOrValue(contentType=Yaml()), help="Name of config file. If is not a path then use `dir` directory", default="config.yaml")
+        self.add_argument("--dir", type=Folder(create=True), help="Destination directory", default="~")
+        self.add_argument("--config", type=FileOrValue(contentType=Yaml()), help="Name of config file. If is not a path then use `dir` directory", default="config.yaml")
 
     def __getattr__(self, name):
         value=None
