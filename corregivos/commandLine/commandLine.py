@@ -4,6 +4,8 @@ import os
 from abc import ABC, abstractmethod
 
 import yaml
+import csv
+from io import StringIO
 from corregivos.lang import memoized
 
 
@@ -89,6 +91,12 @@ class Yaml:
             return {} #default value was a inexistent path, transform to empty dict
         else:
             return yaml.safe_load(arg)
+
+def Csv(arg):
+    if arg.endswith(".csv"):
+        return {} #default value was a inexistent path, transform to empty dict
+    else:
+        return [row for row in csv.DictReader(StringIO(arg))] #ufa, ya era un io antes, luego se hizo string y ahora lo necesito como io :(
 
 class CommandLine:
 
