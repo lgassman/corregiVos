@@ -6,7 +6,8 @@ from abc import ABC, abstractmethod
 import yaml
 import csv
 from io import StringIO
-from corregivos.lang import memoized
+import logging
+import logging.config
 
 
 class Set(argparse.Action):
@@ -108,6 +109,8 @@ class CommandLine:
     def make(self):
         self._add_args()
         args = self.arg_parser.parse_args()
+        if self.logging:
+            logging.config.dictConfig(self.logging)
         return self._new(args)
     
     def _new(self, args):
@@ -124,8 +127,7 @@ class CommandLine:
         self.add_argument("--config", type=FileOrValue(contentType=Yaml()), help="Name of config file. If is not a path then use `dir` directory", default="config.yaml")
 
     def __getattr__(self, name):
-        value=None
-        if name in self.__dict__:
-            value = super().__getattr__(name)
-        return value if value is not None else self.config.get(name)
+        if name in ["config", "arg_parser"]: 
+            return None
+        return self.config.get(name)
 

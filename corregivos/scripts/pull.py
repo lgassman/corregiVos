@@ -2,10 +2,10 @@ import os
 import sys
 import yaml
 from corregivos.commandLine.GithubCommandLine import ClassroomCommandLine
-from corregivos.lib.classroom import Classroom
+from corregivos.domain.classroom import Classroom
 
 if __name__ == "__main__":
     c = ClassroomCommandLine()
-    c=c.make()
-    c.clone_all_repos()
+    classroom=c.make()
+    classroom.pull(c.just_clone)
 

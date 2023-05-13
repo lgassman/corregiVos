@@ -1,6 +1,6 @@
 import os
 from corregivos.commandLine.commandLine import CommandLine, FileOrValue, Set, Csv
-from corregivos.lib.classroom import Classroom
+from corregivos.domain.classroom import Classroom
 
 class GitHubCommandLine(CommandLine):
     
@@ -11,6 +11,7 @@ class GitHubCommandLine(CommandLine):
         self.add_argument("--token", type=FileOrValue(), help="GitHub Personal Access Token", default="github.token")
         self.add_argument("--org", help="GitHub Organization Name")
         self.add_argument("--students", type=FileOrValue(contentType=Csv), help="csv file", default="classroom_roster.csv")
+        self.add_argument("--just_clone", help="if present only clone, else pull if folder exists", default=False)
   
 
 class ClassroomCommandLine(GitHubCommandLine):
