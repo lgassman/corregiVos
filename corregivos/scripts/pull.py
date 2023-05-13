@@ -7,5 +7,5 @@ from corregivos.domain.classroom import Classroom
 if __name__ == "__main__":
     c = ClassroomCommandLine()
     classroom=c.make()
-    classroom.pull(c.just_clone)
+    classroom.work()
 
