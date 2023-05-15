@@ -25,7 +25,11 @@ class CommandLine:
         self._args = self._arg_parser.parse_args()
         if self.logging:
             logging.config.dictConfig(self.logging)
+        self._additional_validations()
         return self._new()
+    
+    def _additional_validations(self):
+        pass
     
     def _new(self):
         return self

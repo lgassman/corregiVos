@@ -30,12 +30,17 @@ class Context:
     
     def set_global(self, key, value):
         self._global[key]=value
+    
+    def append_global(self, key, value):
+        if key not in self._global:
+            self._global[key] = []
+        self._global[key].append(value)
 
     def clean(self):
         self._local={}
 class Classroom(Github):
 
-    def __init__(self, user, token, org, assignment_name, dest_dir, students, workers):
+    def __init__(self, user, token, org, assignment_name, dest_dir, students, workers, action):
         super().__init__(user, token)
         self.org=org
         self.assignment_name=assignment_name
@@ -43,19 +48,40 @@ class Classroom(Github):
         self.students=students
         self.user=user
         self.workers=workers or []
-        self.logger().error(f"creando classroom para user {user} token {token} org {org} assignment:{assignment_name} dir:{dest_dir} students:{self.students} workers:{workers}" )
+        self.action=action
+        self.logger().error(f"creando classroom para user {user} token {token} org {org} assignment:{assignment_name} dir:{dest_dir} students:{self.students} workers:{workers} action: {action}" )
 
     def work(self):
-        orga = self.api.get_organization(self.org)
-        assignment_dir=os.path.join(self.dir, self.assignment_name)
+        context = Context({"org": self.org, "action":self.action})
+        for i in range(len(self.assignment_name)):
+            context.set_global("assignment_name", self.assignment_name[i])
+            context.set_global("students", self.students[i])
+            try:
+                self.do_work(context)
+            except:
+                logging.exception(f"problem working with assigment {self.assignment_name[i]}")
+        self.end(context)
+    
+    def end(self, context):
+        for worker in self.workers:
+            try:
+                worker.end(context)
+            except:
+                logging.exception(f"problem ending {worker}")
+
+    def do_work(self, context):
+        orga = self.api.get_organization(context.org)
+        assignment_dir=os.path.join(self.dir, context.assignment_name)
         if not os.path.exists(assignment_dir):
             os.mkdir(assignment_dir)
         
-        context = Context({orga: orga, self.assignment_name: self.assignment_name})
-        for student in self.students:
+        for student in context.students:
             try:
+                context.student=student
                 self.logger().debug(f"working with {student['identifier']}")
-                reponame=f"{self.assignment_name}-{student['github_username']}"
+                reponame=f"{context.assignment_name}-{student['github_username']}"
+                self.logger().debug(f"REPONAME {reponame} orga {orga}")
+                
                 remote_repo =  orga.get_repo(reponame)
 
                 url_parts = urlparse(remote_repo.clone_url)
@@ -72,15 +98,13 @@ class Classroom(Github):
                     git.Repo.clone_from(url_with_auth, clone_folder_path)
                     local_repo=git.Repo(clone_folder_path)
 
-                context.student=student
                 for worker in self.workers:
                     try:
-                        worker.work(local_repo,remote_repo,context)
+                        getattr(worker, self.action)(local_repo,remote_repo,context)
                     except CutChain:
                         break
-                    except:
-                        self.logger().exception(f"Error working on {student['identifier']}")
-
+                    except Exception as e:
+                        self.logger().exception(f"Error {e} working on {student['identifier']} ")
 
             except:
                 self.logger().exception(f"No repo for {student['github_username']} ({student['identifier']})")
