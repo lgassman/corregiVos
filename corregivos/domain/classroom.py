@@ -8,7 +8,31 @@ import subprocess
 import logging
 import git
 
+class Context:
+    def __init__(self, _global=None):
+        self._global=_global or {}
+        self._local={}
+    
+    def __getattr__(self, name):
+        if name not in  ["_local", "_global"]:
+            x = self._local.get(name) 
+            if x is None :
+                x = self._global.get(name)
+            return x
+        else: 
+            return self.__dict__[name]
 
+    def __setattr__(self, name, value):
+        if name not in[ "_local" , "_global"]:
+            self._local[name]=value
+        else:
+            self.__dict__[name]=value
+    
+    def set_global(self, key, value):
+        self._global[key]=value
+
+    def clean(self):
+        self._local={}
 class Classroom(Github):
 
     def __init__(self, user, token, org, assignment_name, dest_dir, students, workers):
@@ -27,7 +51,7 @@ class Classroom(Github):
         if not os.path.exists(assignment_dir):
             os.mkdir(assignment_dir)
         
-        context = {orga: orga, self.assignment_name: self.assignment_name}
+        context = Context({orga: orga, self.assignment_name: self.assignment_name})
         for student in self.students:
             try:
                 self.logger().debug(f"working with {student['identifier']}")
@@ -48,7 +72,7 @@ class Classroom(Github):
                     git.Repo.clone_from(url_with_auth, clone_folder_path)
                     local_repo=git.Repo(clone_folder_path)
 
-                context["student"]=student
+                context.student=student
                 for worker in self.workers:
                     try:
                         worker.work(local_repo,remote_repo,context)
@@ -60,3 +84,5 @@ class Classroom(Github):
 
             except:
                 self.logger().exception(f"No repo for {student['github_username']} ({student['identifier']})")
+            finally:
+                context.clean()

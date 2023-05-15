@@ -12,7 +12,7 @@ class GitHubCommandLine(CommandLine):
         self.add_argument("--token", type=FileOrValue(parentFolder=self.directory), help="GitHub Personal Access Token", default="github.token")
         self.add_argument("--org", help="GitHub Organization Name")
         self.add_argument("--students", type=FileOrValue(parentFolder=self.directory, contentType=Csv), help="an exported csv file from classroom with all students", default="classroom_roster.csv")
-        self.add_argument("--workers", type=Factory, nargs="*", help="list of classes used to work with repos")
+        self.add_argument("--workers", type=Factory(), nargs="*", help="list of classes used to work with repos")
   
 
 class ClassroomCommandLine(GitHubCommandLine):
