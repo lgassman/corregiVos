@@ -20,8 +20,6 @@ class DummyWorker:
         who = context.student.get('identifier', "unknown")
         logging.debug(f"TRAINING FROM {who} : {context.assignment_name}")
 
-    def end(self, context):
-        logging.debug("END")
 
 
 class ReviewWorker:
@@ -37,10 +35,7 @@ class ReviewWorker:
     
     def train(self, local_repo, remote_repo, contex):
         pass
-    
-    def end(self, context):
-        pass
-    
+        
     def _grade(self, local_repo, remote_repo, context):
         pass
     
@@ -79,7 +74,7 @@ class Openai(ReviewWorker,PullRequestReviwer):
     }
 
     def __init__(self, api_key, model, temperature, max_tokens, top_p, frequency_penalty, presence_penalty, tipo_assigment, enunciado, evaluar, noevaluar, teachers):
-        self.api_key=FileOrValue()(api_key)#TODO: Modificar para que Factory pueda usar los tipos de la configuración así evitamos hacer la conversión acá
+        self.api_key=FileOrValue()(api_key)#TODO: Modificar para que Factory pueda usar los tipos de la configuración así evitamos hacer la conversión acá. O de alguna manera delear en el githubObject que recibirá después de la construcción
         openai.api_key=self.api_key       
         self.model = model
         self.temperature = temperature
@@ -106,25 +101,24 @@ class Openai(ReviewWorker,PullRequestReviwer):
         prompt = '"""\n'
         if not training:
             prompt += self._create_rol()
-            prompt += "# Evaluar:\n"
-            for punto in self.evaluar: 
-                prompt +=f"- {Openai.evaluaciones.get(punto, punto)}\n"
-            prompt += "# No se espera que use:\n"
-            for punto in self.noevaluar: 
-                prompt +=f"- {punto}\n"
+            if self.noevaluar:
+                prompt += "No se espera que use:\n"
+                for punto in self.noevaluar: 
+                    prompt +=f"- {punto}\n"
         prompt += self._create_insertion_request()
-        prompt += f"# Archivos :\n"
+        prompt += f"# Archivos de {context.student['identifier']}:\n"
         for fileName in self.wollokFiles(local_repo) :
-            prompt += f"## {fileName}\n"
+            prompt += f"## {fileName.replace(local_repo.working_dir + '/', '')}\n"
             prompt += f"```\n"
             prompt += f"{FileOrValue()(fileName)}\n"
             prompt += f"```\n"
         prompt += '"""\n'
 
         prompt += f"Evaluar los archivos y completar: \n"
-        prompt += "[Resumen]\n"
+        prompt += "[Resumen]\nComentarios:\n"
         prompt += "- [Archivo] \n"
         prompt += "    - [Linea] | [Comentario] \n"
+        prompt += "-#-\n"
         return prompt
 
     def _grade(self, local_repo, remote_repo, context):
@@ -149,14 +143,15 @@ class Openai(ReviewWorker,PullRequestReviwer):
         prompt = self._create_prompt(local_repo, remote_repo, context, training=True)
         logging.debug(prompt)
 
-        logging.debug("############################################################")
         pr = self.get_pull_request(remote_repo)
         
         reviews = pr.get_reviews()
         resumen  = "\n".join([review.body for review in reviews if review.user.login.lower() in self.teachers])
+        resumen = resumen.lstrip()
         comments = [comment for comment in pr.get_comments() if comment.user.login.lower() in self.teachers]
         if len(comments) == 0 and (not resumen or resumen.isspace()):
             logging.debug(f"No review for {context.student['identifier']}")
+            context.append_global("ignores", reviews)
             return #no review of this
 
         fileCommentsDict={}
@@ -169,12 +164,12 @@ class Openai(ReviewWorker,PullRequestReviwer):
                 fileComments.append({"line":comment.position or 0, "body":comment.body})
             else:
                 reviews += f"\n{comment.body}"
-        completation=" " + resumen + "\n"
+        completation=f" {resumen}\n Comentarios:\n"
         for file in fileCommentsDict:
             completation += f"- {file} \n"
             for comment in fileCommentsDict[file]:
                 completation += f"    - {comment['line']} | {comment['body']}\n"
-        
+
         context.append_global("training", {"prompt":prompt, "completation":completation})
 
 
@@ -186,8 +181,6 @@ class Openai(ReviewWorker,PullRequestReviwer):
                     files.append(os.path.join(root, filename))
         return files
       
-    def end(self, context):
-        pass
 
 class EndReviewWorker(PullRequestReviwer):
 
@@ -205,9 +198,26 @@ class EndReviewWorker(PullRequestReviwer):
     def train(self, local_repo, remote_repo, contex):
         pass
     
-    def end(self, context):
-        logging.debug("####################TRAINING SET###################33")
+    def end_train(self, context):
+        logging.info(f"#saving {self.training_file} entries: {len(context.training)} ignores: {len(context.ignores or [])} errors: {len(context.errors or [])}")
         with open(self.training_file, "w") as file:
             json.dump(context.training, file)
-
     
+    def end_upload(self, context):  
+        import openai # pip install openai si no la tenemos instalada
+        openai.api_key = "sk-..." # Nuestra key, la que obtenemos desde https://platform.openai.com/account/api-keys
+        response = openai.File.create(
+            file=open(self.training_file, "rb"),
+            purpose="fine-tune"
+        )
+        logging.info(response)
+    
+    
+    def end_upload(self, context):  
+        import openai # pip install openai si no la tenemos instalada
+        openai.api_key = "sk-..." # Nuestra key, la que obtenemos desde https://platform.openai.com/account/api-keys
+        response = openai.File.create(
+            file=open(self.training_file, "rb"),
+            purpose="fine-tune"
+        )
+        logging.info(response)

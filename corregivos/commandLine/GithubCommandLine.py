@@ -12,7 +12,7 @@ class GitHubCommandLine(CommandLine):
         self.add_argument("--token", type=FileOrValue(parentFolder=self.directory), help="GitHub Personal Access Token", default="github.token")
         self.add_argument("--org", help="GitHub Organization Name")
         self.add_argument("--workers", type=Factory(), nargs="*", help="list of classes used to work with repos")
-        self.add_argument("--action", help="What do you want do? <train>  or <grade>", default="grade")
+        self.add_argument("--action", help="What do you want do? <train> , <grade> or <upload> or <request_train>", default="grade")
   
 
 class ClassroomCommandLine(GitHubCommandLine):

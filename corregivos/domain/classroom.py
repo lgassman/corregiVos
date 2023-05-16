@@ -49,25 +49,31 @@ class Classroom(Github):
         self.user=user
         self.workers=workers or []
         self.action=action
-        self.logger().error(f"creando classroom para user {user} token {token} org {org} assignment:{assignment_name} dir:{dest_dir} students:{self.students} workers:{workers} action: {action}" )
+        self.logger().error(f"creando classroom para user {user} token {token} org {org} assignment:{assignment_name} dir:{dest_dir} workers:{workers} action: {action}" )
+        for worker in self.workers:
+            self.github_object=self
 
     def work(self):
         context = Context({"org": self.org, "action":self.action})
-        for i in range(len(self.assignment_name)):
-            context.set_global("assignment_name", self.assignment_name[i])
-            context.set_global("students", self.students[i])
-            try:
-                self.do_work(context)
-            except:
-                logging.exception(f"problem working with assigment {self.assignment_name[i]}")
-        self.end(context)
+        if self.action=="upload": #Es un hack para evitar laburar al pedo. Se necesita un refactor!
+            self.run_action(self.action, context)
+        else: 
+            for i in range(len(self.assignment_name)):
+                context.set_global("assignment_name", self.assignment_name[i])
+                context.set_global("students", self.students[i])
+                try:
+                    self.do_work(context)
+                except:
+                    logging.exception(f"problem working with assigment {self.assignment_name[i]}")
+        self.run_action(f"end_{self.action}", context)
     
-    def end(self, context):
+    def run_action(self, method_name, context):
         for worker in self.workers:
             try:
-                worker.end(context)
+                if hasattr(worker, method_name):
+                    getattr(worker, method_name)(context)
             except:
-                logging.exception(f"problem ending {worker}")
+                logging.exception(f"problem executing {method_name} on {worker}")
 
     def do_work(self, context):
         orga = self.api.get_organization(context.org)
@@ -78,6 +84,12 @@ class Classroom(Github):
         for student in context.students:
             try:
                 context.student=student
+                if not student["github_username"]:
+                    raise Exception(f"No github user associated to {student['identifier']}")
+                if student["github_username"] == "ghost" :
+                    user = self.api.get_user_by_id(int(student["github_id"]))
+                    student["github_username"] = user.login
+
                 self.logger().debug(f"working with {student['identifier']}")
                 reponame=f"{context.assignment_name}-{student['github_username']}"
                 self.logger().debug(f"REPONAME {reponame} orga {orga}")
@@ -100,13 +112,16 @@ class Classroom(Github):
 
                 for worker in self.workers:
                     try:
-                        getattr(worker, self.action)(local_repo,remote_repo,context)
+                        if hasattr(worker, self.action):
+                            getattr(worker, self.action)(local_repo,remote_repo,context)
                     except CutChain:
                         break
                     except Exception as e:
-                        self.logger().exception(f"Error {e} working on {student['identifier']} ")
+                        msg = f"Error {e} working on {student['identifier']} repo:{reponame}"
+                        self.logger().exception(msg)
+                        context.append_global("errors", msg)
 
-            except:
-                self.logger().exception(f"No repo for {student['github_username']} ({student['identifier']})")
+            except Exception as e:
+                self.logger().exception(f" {e} problem in {context.assignment_name} working with {student['github_username']} ({student['identifier']})  ")
             finally:
                 context.clean()
