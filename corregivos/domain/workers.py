@@ -100,6 +100,7 @@ En caso de code smell indicar cuál es el mismo.
         prompt = '"""\n'
         if not training:
             prompt += self._create_rol()
+        
 #        prompt = f"{context.student['identifier']}\n"
         prompt += f"# Archivos\n"
         for fileName in self.wollokFiles(local_repo) :
@@ -168,7 +169,8 @@ En caso de code smell indicar cuál es el mismo.
             context.append_global("ignores", msg)
             return #no review of this
 
-        issues= [{"file":comment["path"], "issue": comment["body"], "line": comment["position"]} for comment in comments if hasattr(comment, "path")] 
+        issues= [{"file":comment.path, "issue": comment.body, "line": comment.position} for comment in comments if hasattr(comment, "path")] 
+        resumen= resumen + "\n".join([comment.body for comment in comments if not hasattr(comment, "path")]) 
         completion={"resumen":resumen, "issues":issues}
         
         context.append_global("training", {"prompt":prompt, "completion":completion})
