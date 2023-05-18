@@ -64,17 +64,14 @@ class Classroom(Github):
 
     def work(self):
         context = Context({"org": self.org, "action":self.action})
-        if self.action not in ["train", "grade"]: #Es un hack para evitar laburar al pedo. ya que train y grade iteran por todos los repos haciendo pool
-            self.run_action(self.action, context)
-        else: 
-            for i in range(len(self.assignment_name)):
-                context.set_global("assignment_name", self.assignment_name[i])
-                context.set_global("students", self.students[i])
-                try:
-                    self.do_work(context)
-                except:
-                    logging.exception(f"problem working with assigment {self.assignment_name[i]}")
-                self.run_action(f"end_{self.action}", context)
+        for i in range(len(self.assignment_name)):
+            context.set_global("assignment_name", self.assignment_name[i])
+            context.set_global("students", self.students[i])
+            try:
+                self.do_work(context)
+            except:
+                logging.exception(f"problem working with assigment {self.assignment_name[i]}")
+            self.run_action(f"end_{self.action}", context)
     
     def run_action(self, method_name, context):
         for worker in self.workers:

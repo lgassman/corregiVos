@@ -1,0 +1,43 @@
+#App data
+org: obj1unq 
+user: lgassman
+
+students: [classroom_roster.csv]
+assignment_name: [2023s2-tp1-empanadas-gimenez]
+
+#action: train
+action: grade
+
+openai_api_key: openai.api_key 
+workers: 
+#- corregivos.domain.workers.DummyWorker
+- corregivos.domain.workers.Openai:
+    model: text-davinci-003
+    #model: davinci:ft-scv:wlk-2023-05-17-17-35-30
+    temperature: 1
+    max_tokens: 1800
+    top_p: 1
+    frequency_penalty: 0
+    presence_penalty: 0
+    teachers: [lgassman, dfortini,npasserini,palumbon,isaiaslafon, davidignacioduarte,  mayamatista, juanpdiaz-cpi,ferurquijo,51lv3str1, melanibr, natalia82, leoquilmes88, ferromu, ivanapr ]
+- corregivos.domain.workers.EndReviewWorker:
+    base_model: davinci
+    model_suffix: wollok
+    commit_to_github: false
+
+#Logging
+logging:
+  version: 1
+  disable_existing_loggers: false
+  root:
+    level: INFO
+    handlers: [screen]
+  handlers:
+    screen:
+      class: logging.StreamHandler
+      level: DEBUG
+      formatter: simple
+      stream: ext://sys.stdout
+  formatters:
+    simple:
+      format: '[%(asctime)s] [%(levelname)s] %(message)s'  

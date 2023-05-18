@@ -22,9 +22,13 @@ class DummyWorker:
         who = context.student.get('identifier', "unknown")
         logging.debug(f"TRAINING FROM {who} : {context.assignment_name}")
 
+    def end_grade(self, context):
+        logging.debug("end grade")
+
+    def end_train(self, context):
+        logging.debug("end grade")
 
 class ReviewWorker:
-
 
     def grade(self, local_repo, remote_repo, context):
         self.context = context
@@ -33,10 +37,7 @@ class ReviewWorker:
         self.context.event="COMMENT"
         
         self._grade(local_repo, remote_repo, context)
-    
-    def train(self, local_repo, remote_repo, contex):
-        pass
-        
+            
     def _grade(self, local_repo, remote_repo, context):
         pass
     
@@ -66,10 +67,11 @@ class PullRequestReviwer():
         return next((pr for pr in pull_requests if not title or pr.title.lower() == title.lower()), None)
 class Openai(ReviewWorker,PullRequestReviwer):
 
-    evaluaciones= {
-        "precálculos": "No tener atributos cuyos valores se pueden calcular en el momento de necesitarse",
-        "polimorfismo": "Debe usarse polimorfismo. No tener `if` que consulten por la identidad de un objeto o denoten su tipo",
-    }
+    # Una buena idea era configurar que cosas se van a evaluar y que no:
+    # evaluaciones= {
+    #     "precálculos": "No tener atributos cuyos valores se pueden calcular en el momento de necesitarse",
+    #     "polimorfismo": "Debe usarse polimorfismo. No tener `if` que consulten por la identidad de un objeto o denoten su tipo",
+    # }
 
     def __init__(self, model, temperature, max_tokens, top_p, frequency_penalty, presence_penalty, teachers):
         self.model = model
@@ -100,7 +102,8 @@ En caso de code smell indicar cuál es el mismo.
         prompt = '"""\n'
         if not training:
             prompt += self._create_rol()
-        
+
+# Una buena idea era pasar el enunciado
 #        prompt = f"{context.student['identifier']}\n"
         prompt += f"# Archivos\n"
         for fileName in self.wollokFiles(local_repo) :
@@ -123,7 +126,7 @@ En caso de code smell indicar cuál es el mismo.
 
     def _grade(self, local_repo, remote_repo, context):
         prompt = self._create_prompt(local_repo, remote_repo, context)
-        logging.debug(prompt)
+        logging.info(f"PROMPT TO OPENAI:\n {prompt}")
 
         response = openai.Completion.create(
             model=self.model,
@@ -135,6 +138,7 @@ En caso de code smell indicar cuál es el mismo.
             presence_penalty= float(self.presence_penalty)
         )
         logging.debug(response)
+        logging.info(f" Respuesta de OPENAI:\n {response['choices'][0]['text']}")
         self.parse(response["choices"][0]["text"])
 
     def parse(self, text): 
@@ -198,58 +202,59 @@ En caso de code smell indicar cuál es el mismo.
 
 class EndReviewWorker(PullRequestReviwer):
 
-    def __init__(self, base_model,model_suffix):
+    def __init__(self, base_model,model_suffix, commit_to_github=True):
         super().__init__
         self.base_model=base_model
         self.model_suffix=model_suffix
+        self.commit_to_github=True
 
     def grade(self, local_repo, remote_repo, context):
 
-        pr = self.get_pull_request(remote_repo)
-        commits_list = pr.get_commits().reversed.get_page(0)
-        last_commit = commits_list[-1]
-
-        logging.info(f"commit={last_commit}, body={context.general_comment} , event={context.event}, comments={context.comments}")        
-        pr.create_review(commit=last_commit, body=context.general_comment , event=context.event, comments=context.comments)
+        if self.commit_to_github:
+            pr = self.get_pull_request(remote_repo)
+            commits_list = pr.get_commits().reversed.get_page(0)
+            last_commit = commits_list[-1]
+            logging.info(f"commit={last_commit}, body={context.general_comment} , event={context.event}, comments={context.comments}")        
+            pr.create_review(commit=last_commit, body=context.general_comment , event=context.event, comments=context.comments)
+        else:
+            logging.info(f"body={context.general_comment} , event={context.event}, comments={context.comments}")        
     
-    def train(self, local_repo, remote_repo, contex):
-        pass
     
     def end_train(self, context):
         logging.info(f"#saving {self.training_file} entries: {len(context.training)} ignores: {len(context.ignores or [])} errors: {len(context.errors or [])}")
        
-        #convertir al formato de openai
         with open(self.training_file, "w") as file:
             for obj in context.training:
                 file.write(json.dumps(obj) + "\n")
+
+    # Esto queda realmente más sencillo usar la tool de línea de comando de openai    
+    # def upload(self, context):  
+    #     response = openai.File.create(
+    #         file=open(self.training_file, "rb"),
+    #         purpose="fine-tune"
+    #     )
+    #     logging.info(response)
+    #     with open(self.output_training_file_data, "w") as file:
+    #         json.dump(response, file)
+
+    # def update_model(self, context):  
+
+    #     data=None
+    #     with open(self.output_training_file_data, "r") as file:
+    #         data=json.load(file)
+    #     file_id=data["id"]
+    #     logging.info(f"id: {file_id}")
+
+    #     response = openai.FineTune.create(
+    #         training_file=file_id,
+    #         model=self.base_model,
+    #         suffix=self.model_suffix
+    #     )
     
-    def upload(self, context):  
-        response = openai.File.create(
-            file=open(self.training_file, "rb"),
-            purpose="fine-tune"
-        )
-        logging.info(response)
-        with open(self.output_training_file_data, "w") as file:
-            json.dump(response, file)
-
-    def update_model(self, context):  
-
-        data=None
-        with open(self.output_training_file_data, "r") as file:
-            data=json.load(file)
-        file_id=data["id"]
-        logging.info(f"id: {file_id}")
-
-        response = openai.FineTune.create(
-            training_file=file_id,
-            model=self.base_model,
-            suffix=self.model_suffix
-        )
-    
-        logging.info(response)
-        with open(self.output_update_model_file, "w") as file:
-            json.dump(response, file)
-        print(response)
+    #     logging.info(response)
+    #     with open(self.output_update_model_file, "w") as file:
+    #         json.dump(response, file)
+    #     print(response)
     
 
     #REFACTOR! Todos esos metodos deberían volar. O uso dependency injection de verdad, o le toqueto el __getattr__
