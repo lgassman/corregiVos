@@ -10,6 +10,12 @@ Está desarrollado en python y funciona por línea de comandos. Se le indica el 
 # Dependencias
 
 [requerimients.txt](requirements.txt)
+
+```plaintext
+```bash
+$(cat requirements.txt)
+```
+```
 # Configuración y ejecución
 
 Se puede correr como script python o instalar el módulo con pip
