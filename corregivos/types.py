@@ -19,6 +19,18 @@ class Folder():
                 raise argparse.ArgumentTypeError(f"{value} is not a valid folder")
         return value
 
+class FilePath:
+    def __init__(self, parentFolder="."):
+        self.parentFolder=parentFolder
+
+    def __call__(self, arg):
+        path = os.path.expanduser(arg)
+        if os.path.isabs(path):
+            return path
+        else:
+            folder = self.parentFolder() if callable(self.parentFolder) else self.parentFolder 
+            return os.path.join(folder, path)
+
 class FileOrValue():
     def __init__(self, parentFolder=".", contentType=str):
         self.contentType = contentType 

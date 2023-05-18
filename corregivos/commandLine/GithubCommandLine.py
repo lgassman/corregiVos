@@ -1,6 +1,6 @@
 import os
 from corregivos.commandLine.commandLine import CommandLine
-from corregivos.types import FileOrValue, Csv, Factory
+from corregivos.types import FileOrValue, Csv, Factory, FilePath
 from corregivos.domain.classroom import Classroom
 
 class GitHubCommandLine(CommandLine):
@@ -12,7 +12,13 @@ class GitHubCommandLine(CommandLine):
         self.add_argument("--token", type=FileOrValue(parentFolder=self.directory), help="GitHub Personal Access Token", default="github.token")
         self.add_argument("--org", help="GitHub Organization Name")
         self.add_argument("--workers", type=Factory(), nargs="*", help="list of classes used to work with repos")
-        self.add_argument("--action", help="What do you want do? <train> , <grade> or <upload> or <request_train>", default="grade")
+        self.add_argument("--action", help="What do you want do? <train> , <grade> or <upload> or <update_model>", default="grade")
+        self.add_argument("--training_file", type=FilePath(parentFolder=self.directory), help="path to trining file", default="training.jsonl")
+        self.add_argument("--openai_api_key", type=FileOrValue(parentFolder=self.directory), default="openai.api_key")
+        self.add_argument("--output_training_file_data", type=FilePath(parentFolder=self.directory), default="output_training_file_data.json")
+        self.add_argument("--output_update_model_file", type=FilePath(parentFolder=self.directory), default="output_update_model_file.json")
+        self.add_argument("--prompt_suffix", default="|^*")
+        self.add_argument("--completion_suffix", default="|^*")
   
 
 class ClassroomCommandLine(GitHubCommandLine):
@@ -34,5 +40,11 @@ class ClassroomCommandLine(GitHubCommandLine):
                 dest_dir=self.dir,
                 students=self.students,
                 workers=self.workers,
-                action=self.action)
+                action=self.action,
+                training_file=self.training_file,
+                openai_api_key=self.openai_api_key,
+                output_training_file_data = self.output_training_file_data,
+                output_update_model_file=self.output_update_model_file,
+                prompt_suffix = self.prompt_suffix,
+                completion_suffix = self.completion_suffix)
 

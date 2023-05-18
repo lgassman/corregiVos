@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import subprocess
 import logging
 import git
+import openai
 
 class Context:
     def __init__(self, _global=None):
@@ -40,7 +41,7 @@ class Context:
         self._local={}
 class Classroom(Github):
 
-    def __init__(self, user, token, org, assignment_name, dest_dir, students, workers, action):
+    def __init__(self, user, token, org, assignment_name, dest_dir, students, workers, action, training_file, openai_api_key, output_training_file_data, output_update_model_file, prompt_suffix, completion_suffix) :
         super().__init__(user, token)
         self.org=org
         self.assignment_name=assignment_name
@@ -50,12 +51,20 @@ class Classroom(Github):
         self.workers=workers or []
         self.action=action
         self.logger().error(f"creando classroom para user {user} token {token} org {org} assignment:{assignment_name} dir:{dest_dir} workers:{workers} action: {action}" )
+        self.training_file = training_file
+        self.openai_api_key=openai_api_key
+        openai.api_key=self.openai_api_key       
         for worker in self.workers:
-            self.github_object=self
+            worker.github_object=self
+        self.output_training_file_data= output_training_file_data
+        self.output_update_model_file=output_update_model_file
+        self.prompt_suffix = prompt_suffix
+        self.completion_suffix = completion_suffix
+
 
     def work(self):
         context = Context({"org": self.org, "action":self.action})
-        if self.action=="upload": #Es un hack para evitar laburar al pedo. Se necesita un refactor!
+        if self.action not in ["train", "grade"]: #Es un hack para evitar laburar al pedo. ya que train y grade iteran por todos los repos haciendo pool
             self.run_action(self.action, context)
         else: 
             for i in range(len(self.assignment_name)):
@@ -65,7 +74,7 @@ class Classroom(Github):
                     self.do_work(context)
                 except:
                     logging.exception(f"problem working with assigment {self.assignment_name[i]}")
-        self.run_action(f"end_{self.action}", context)
+                self.run_action(f"end_{self.action}", context)
     
     def run_action(self, method_name, context):
         for worker in self.workers:
