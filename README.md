@@ -100,8 +100,8 @@ El objeto CommandLine es ejecutado desde un script. Se le pide que genere el obj
 algún método de dicho objeto.
 
 Ejemplo:
-[GithubCommandLine](corregivos/commandLine/GithubCommandLine.py)
-[grade.py](corregivos/scripts/grade.py)
+- [GithubCommandLine](corregivos/commandLine/GithubCommandLine.py)
+- [grade.py](corregivos/scripts/grade.py)
 
 ## Workers
 
