@@ -8,7 +8,8 @@ Está desarrollado en python y funciona por línea de comandos. Se le indica el 
 (ambas cosas se obtienen de github classroom) y el resultado es una serie de comentarios en el PullRequest de feedback
 
 # Dependencias
-    [requerimients.txt](requirements.txt)
+
+[requerimients.txt](requirements.txt)
 # Configuración y ejecución
 
 Se puede correr como script python o instalar el módulo con pip
@@ -39,7 +40,9 @@ orga: my_classroom_orga
 user: my_github_user
 ```
 ### Editar para training
+
 Si se quiere armar el training set también configurar:
+
 ```
     #Usar tantos assigments como se quiera
     assignment_name: [my_assignment_name_last_semester, my_assignment_name_other_semester]  
@@ -71,6 +74,7 @@ Adicionalmente casi todos los parámetros pueden ser sobrescritos por línea de 
 Todos los parámetros que se refieren a archivos para ir a buscar información pueden recibir tanto la ruta (absoluta o relativa al directorio
 de trabajo) como el contenido mismo. Por ejemplo, no es necesario tener archivos con los tokens de github y openai, ya que se puede
 usar los parámetros para enviar directmante los valores por línea de comando por ejemplo:
+
 ```
     #run
     python3 corregivos/scripts/grade.py --dir ~/work_here --openai_api_key "<esta es mi key>"
@@ -83,56 +87,58 @@ Mientras que si el action es **train** el resultado es un archivo llamado (por d
 # Arquitectura
 
 ## Línea de comando
-    Las clases `CommandLine` permiten definir parámetros que se buscan con el lookup descripto anteriormente. Para eso deben implementar
-    el método `declare_params(self)` haciendo uso del método `add_argument` que se usa de la misma manera que el `argument_parser` estandard
+    
+Las clases `CommandLine` permiten definir parámetros que se buscan con el lookup descripto anteriormente. Para eso deben implementar
+el método `declare_params(self)` haciendo uso del método `add_argument` que se usa de la misma manera que el `argument_parser` estandard
 
-    Además Un CommandLine puede sobreescrir el método _build() para construir un objeto de dominio. Si no lo hace él mismo es considerado
-    el objeto de dominio.
+Además Un CommandLine puede sobreescrir el método _build() para construir un objeto de dominio. Si no lo hace él mismo es considerado
+el objeto de dominio.
 
-    Todos los parámetros definidos terminan siendo atributos del objeto CommandLine. 
+Todos los parámetros definidos terminan siendo atributos del objeto CommandLine. 
 
-    El objeto CommandLine es ejecutado desde un script. Se le pide que genere el objeto de dominio y luego se invoca a
-    algún método de dicho objeto.
+El objeto CommandLine es ejecutado desde un script. Se le pide que genere el objeto de dominio y luego se invoca a
+algún método de dicho objeto.
 
-    Ejemplo:
-    [GithubCommandLine](corregivos/commandLine/GithubCommandLine.py)
-    [grade.py](corregivos/scripts/grade.py)
+Ejemplo:
+[GithubCommandLine](corregivos/commandLine/GithubCommandLine.py)
+[grade.py](corregivos/scripts/grade.py)
 
 ## Workers
-    Tanto las acciones **grade** como **train** se resuelve de la siguiente manera:
-    1. Se realiza un clone (o un pull si ya estaba clonado) de cada repositorio del assigment
-    2. Se invoca a una __chain of responsability__ de objetos workers por cada estudiante. 
-    3. Se invoca por única vez para cada worker el método de fin
 
-    Cada worker puede elegir si participa en el grade y/o train. Para lo cual debe implementar estos métodos según lo desee
-    ```
-        def grade(self, local_repo, remote_repo, context):
+Tanto las acciones **grade** como **train** se resuelve de la siguiente manera:
+1. Se realiza un clone (o un pull si ya estaba clonado) de cada repositorio del assigment
+2. Se invoca a una __chain of responsability__ de objetos workers por cada estudiante. 
+3. Se invoca por única vez para cada worker el método de fin
 
-        def train(self, local_repo, remote_repo, context):
+Cada worker puede elegir si participa en el grade y/o train. Para lo cual debe implementar estos métodos según lo desee
+```
+    def grade(self, local_repo, remote_repo, context):
 
-        def end_grade(self, context):
+    def train(self, local_repo, remote_repo, context):
 
-        def end_train(self, context):
+    def end_grade(self, context):
 
-    ```
+    def end_train(self, context):
 
-    Si en el método grade o train ocurre una excepción de tipo corregivos.workers.CutChain la cadena se corta y se pasa al siguiente estudiante.
-    
-    Cualquier otro error cancela la operación completa
+```
 
-    Los workers dejan información en el contexto que puede ser usada por el siguiente worker. Existen dos niveles de información:
-        - global: Lo que se pone ahí queda para todo el proceso. Se setea con el método `set_global(self, key, value)`
-        - local: Lo que se pone aquí es limpiado al iniciar el proceso para cada estudiante (repo).  Se seta simplemente
-        como atributos del objeto context
-    
-    Cuando se le pide al contecto por un atributo, lo busca local y si no lo encuentra usa el global
+Si en el método grade o train ocurre una excepción de tipo corregivos.workers.CutChain la cadena se corta y se pasa al siguiente estudiante.
 
-    Al inicio de cada proceso se setea en el contexto el objeto "student" que es el asociado a los repos `local_repo`y `remote_repo` que figura en el classroom_rooster.csv
+Cualquier otro error cancela la operación completa
 
-    También están de manera global el `assigment_name` y la `orga`
+Los workers dejan información en el contexto que puede ser usada por el siguiente worker. Existen dos niveles de información:
+    - global: Lo que se pone ahí queda para todo el proceso. Se setea con el método `set_global(self, key, value)`
+    - local: Lo que se pone aquí es limpiado al iniciar el proceso para cada estudiante (repo).  Se seta simplemente
+    como atributos del objeto context
 
-    Antes de comenzar el proceso, a los workers se le setea el atributo `github_object` con una referencia al objeto "Classroom" que es
-    el objeto de dominio creado por línea de comando
+Cuando se le pide al contecto por un atributo, lo busca local y si no lo encuentra usa el global
+
+Al inicio de cada proceso se setea en el contexto el objeto "student" que es el asociado a los repos `local_repo`y `remote_repo` que figura en el classroom_rooster.csv
+
+También están de manera global el `assigment_name` y la `orga`
+
+Antes de comenzar el proceso, a los workers se le setea el atributo `github_object` con una referencia al objeto "Classroom" que es
+el objeto de dominio creado por línea de comando
 
 
 
