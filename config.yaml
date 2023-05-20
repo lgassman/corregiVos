@@ -2,8 +2,9 @@
 org: obj1unq 
 user: lgassman
 
-students: [classroom_roster.csv]
-assignment_name: [2023s2-tp1-empanadas-gimenez]
+students: [yo.csv]
+#assignment_name: [2023s2-tp1-empanadas-gimenez]
+assignment_name: [2023s1---tp2---camion]
 
 #action: train
 action: grade
@@ -15,7 +16,7 @@ workers:
     model: text-davinci-003
     #model: davinci:ft-scv:wlk-2023-05-17-17-35-30
     temperature: 1
-    max_tokens: 1800
+    max_tokens: 1000
     top_p: 1
     frequency_penalty: 0
     presence_penalty: 0
@@ -23,7 +24,7 @@ workers:
 - corregivos.domain.workers.EndReviewWorker:
     base_model: davinci
     model_suffix: wollok
-    commit_to_github: false
+    commit_to_github: true
 
 #Logging
 logging:

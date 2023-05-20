@@ -9,7 +9,7 @@ Está desarrollado en python y funciona por línea de comandos. Se le indica el 
 
 # Dependencias
 
-[requerimients.txt](requirements.txt)
+[requirements.txt](requirements.txt)
 
 # Configuración y ejecución
 

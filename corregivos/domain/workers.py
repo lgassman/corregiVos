@@ -143,13 +143,13 @@ En caso de code smell indicar cuál es el mismo.
 
     def parse(self, text): 
         try :
-            json_response = json.loads(text)
+            json_response = json.loads(text.strip())
             self.comment(body="*Generado por openai*\n" + json_response["resumen"])
             for comment in json_response["issues"]:
                 try:
-                    self.comment(body="*Generado por openai*\n" + comment["issue"], line=comment["line"], path=comment["file"])
+                    self.comment(body="*Generado por openai*\n" + comment["issue"], line=comment.get("line",0) or 0 , path=comment["file"])
                 except:
-                    self.comment(f"No pudimos parsear esta parte de respuesta de openai: {json.dumps(comment)}" )
+                    self.comment(f"No pudimos parsear esta parte de la respuesta de openai: {json.dumps(comment)}" )
         except Exception as e:
                 logging.exception(f"{e} parsing response {text}")
                 self.comment(f"No pudimos parsear la respuesta de openai, pero aquí te la dejamos igual: {text}" )
