@@ -73,7 +73,7 @@ class Openai(ReviewWorker,PullRequestReviwer):
     #     "polimorfismo": "Debe usarse polimorfismo. No tener `if` que consulten por la identidad de un objeto o denoten su tipo",
     # }
 
-    def __init__(self, model, temperature, max_tokens, top_p, frequency_penalty, presence_penalty, teachers):
+    def __init__(self, openai_api_key, model, temperature, max_tokens, top_p, frequency_penalty, presence_penalty, teachers,prompt_suffix, completion_suffix):
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -81,6 +81,10 @@ class Openai(ReviewWorker,PullRequestReviwer):
         self.frequency_penalty = frequency_penalty
         self.presence_penalty = presence_penalty
         self.teachers=teachers
+        self.prompt_suffix=prompt_suffix
+        self.completion_suffix=completion_suffix
+        openai.api_key=openai_api_key
+
     
     def _create_rol(self):
         return """Sos profesor de una materia de programación en una universidad para la enseñanza de POO con el lenguaje Wollok y evaluarás una solución de un estudiante.
@@ -113,7 +117,7 @@ En caso de code smell indicar cuál es el mismo.
             prompt += f"```\n"
         if not training:
             prompt += """Armarás un json bien formado con la estructura que se describe a continuación, reemplazando [resumen] con el resumen general ,  [file] con el nombre del archivo sobre el que haces comentario, [issue] con el texto del comentario sobre el código fuente que tiene una mala práctica y [line] con el número entero de línea del archivo al que corresponde el comentario. 
-{"resumen":"[resumen]"
+{"resumen":"[resumen]",
   "issues": [ {"file":"[file]", "issue":"[issue]",  "line":[line]} ]
 }
 """
@@ -190,23 +194,18 @@ En caso de code smell indicar cuál es el mismo.
     
     def is_wollok_file(self, filename):
         return filename.endswith(('.wlk', '.wpgm'))
-    
-    @property
-    def prompt_suffix(self):
-        return getattr(self, "github_object").prompt_suffix
-
-    @property
-    def completion_suffix(self):
-        return getattr(self, "github_object").completion_suffix
  
 
 class EndReviewWorker(PullRequestReviwer):
 
-    def __init__(self, base_model,model_suffix, commit_to_github=True):
+    def __init__(self, base_model,model_suffix, training_file, output_training_file_data,commit_to_github=True):
         super().__init__
         self.base_model=base_model
         self.model_suffix=model_suffix
-        self.commit_to_github=True
+        self.training_file=training_file
+        self.output_training_file_data=output_training_file_data
+        self.commit_to_github=commit_to_github
+        
 
     def grade(self, local_repo, remote_repo, context):
 
@@ -227,46 +226,4 @@ class EndReviewWorker(PullRequestReviwer):
             for obj in context.training:
                 file.write(json.dumps(obj) + "\n")
 
-    # Esto queda realmente más sencillo usar la tool de línea de comando de openai    
-    # def upload(self, context):  
-    #     response = openai.File.create(
-    #         file=open(self.training_file, "rb"),
-    #         purpose="fine-tune"
-    #     )
-    #     logging.info(response)
-    #     with open(self.output_training_file_data, "w") as file:
-    #         json.dump(response, file)
-
-    # def update_model(self, context):  
-
-    #     data=None
-    #     with open(self.output_training_file_data, "r") as file:
-    #         data=json.load(file)
-    #     file_id=data["id"]
-    #     logging.info(f"id: {file_id}")
-
-    #     response = openai.FineTune.create(
-    #         training_file=file_id,
-    #         model=self.base_model,
-    #         suffix=self.model_suffix
-    #     )
-    
-    #     logging.info(response)
-    #     with open(self.output_update_model_file, "w") as file:
-    #         json.dump(response, file)
-    #     print(response)
-    
-
-    #REFACTOR! Todos esos metodos deberían volar. O uso dependency injection de verdad, o le toqueto el __getattr__
-    @property
-    def output_update_model_file(self):
-        return getattr(self, "github_object").output_update_model_file
-
-    @property 
-    def training_file(self):
-        return getattr(self, "github_object").training_file
-
-    @property
-    def output_training_file_data(self):
-        return getattr(self, "github_object").output_training_file_data
 

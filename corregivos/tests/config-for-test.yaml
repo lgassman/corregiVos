@@ -1,0 +1,14 @@
+aConfiguratedString: MyConfiguratedStringValue
+aConfiguratedInt: 13
+aListOfObject: 
+  - corregivos.tests.test_factory.InnerClass
+  - corregivos.tests.test_factory.InnerClass argValue1 argValue2
+  - corregivos.tests.test_factory.InnerClass:
+      value1: kargValue1 
+      value2: kargValue2
+  - corregivos.tests.test_factory.InnerClass:
+      value1: $aConfiguratedString 
+      value2: $$aConfiguratedString
+  - corregivos.tests.test_factory.InnerClass:
+      value1: $aStringFromParam       
+  - corregivos.tests.test_factory.InnerClass  $$aStringFromParam $aStringFromParam

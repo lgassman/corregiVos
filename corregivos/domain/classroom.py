@@ -41,7 +41,7 @@ class Context:
         self._local={}
 class Classroom(Github):
 
-    def __init__(self, user, token, org, assignment_name, dest_dir, students, workers, action, training_file, openai_api_key, output_training_file_data, output_update_model_file, prompt_suffix, completion_suffix) :
+    def __init__(self, user, token, org, assignment_name, dest_dir, students, workers, action) :
         super().__init__(user, token)
         self.org=org
         self.assignment_name=assignment_name
@@ -51,16 +51,9 @@ class Classroom(Github):
         self.workers=workers or []
         self.action=action
         self.logger().error(f"creando classroom para user {user} token {token} org {org} assignment:{assignment_name} dir:{dest_dir} workers:{workers} action: {action}" )
-        self.training_file = training_file
-        self.openai_api_key=openai_api_key
-        openai.api_key=self.openai_api_key       
         for worker in self.workers:
             worker.github_object=self
-        self.output_training_file_data= output_training_file_data
-        self.output_update_model_file=output_update_model_file
-        self.prompt_suffix = prompt_suffix
-        self.completion_suffix = completion_suffix
-
+       
 
     def work(self):
         context = Context({"org": self.org, "action":self.action})

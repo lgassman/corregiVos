@@ -50,7 +50,7 @@ class CommandLine:
         if default is not None:
             self._defaults[name] = default
         if type is not None:
-            self.types[name] = type
+            self._types[name] = type
 
     def declare_params (self):
         self.add_argument("--dir", type=Folder(create=True), help="Destination directory", default="~")
@@ -67,11 +67,20 @@ class CommandLine:
         else:
             return self._values.get(name)
 
+    def _convert_by_type(self, name, value):
+        if name in self._types:
+            if isinstance(value, list):
+                return [self._types[name](x) for x in value ]
+            else:
+                return self._types[name](value)
+        else:
+            return value
+
     def find_attr(self, name):
         if hasattr(self._args, name):
             value=getattr(self._args,name)
             if value is not None:
-                return value
+                return self._convert_by_type(name, value)
         value=None
         if name != "config":
             value = self.config and self.config.get(name)
@@ -79,7 +88,8 @@ class CommandLine:
             value = self._defaults.get(name)
             if callable(value):
                 value = value()
-
+        self._convert_by_type(name, value)
+        
         if name in self._types:
             if isinstance(value, list):
                 return [self._types[name](x) for x in value ]

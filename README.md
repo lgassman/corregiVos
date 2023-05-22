@@ -22,7 +22,7 @@ Se puede correr como script python o instalar el módulo con pip
 #crear el directorio de trabajo
     mkdir ~/work_here 
 #copiar un template de configuración
-    cp config.yaml ~/work_here
+    cp config-template.yaml ~/work_here/config.yaml
 #poner el token de github en donde está configurado por default
     printf "my_github_token" >> ~/work_here/github.token
 #poner el token de openai en donde está configurado por default

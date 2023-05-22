@@ -61,27 +61,35 @@ def Csv(arg):
 
 class Factory:
     
-    def __call__(self, arg):
-        return self._new(arg)
+    def __init__(self, context=None):
+        self.context =context
     
-    def _new(self, valueOrClassWithArgs, kwargs=None):
-        if isinstance(valueOrClassWithArgs, str):
-            return self._new_from_string(valueOrClassWithArgs, kwargs)
-        elif isinstance(valueOrClassWithArgs, dict):
-            x = [ self._new(key, valueOrClassWithArgs[key]) for key in valueOrClassWithArgs ]
-            return x[0] if len(x) == 1 else x
-        elif isinstance(valueOrClassWithArgs, list):
-            return [ self._new(key, {}) for key in valueOrClassWithArgs ]
+    def __call__(self, arg):
+        return self._get_value(arg)
+    
+    def _get_value(self, valueOrClassWithArgsOrContextkey, kwargs=None):
+        if isinstance(valueOrClassWithArgsOrContextkey, str): 
+            if valueOrClassWithArgsOrContextkey.startswith("$$") and self.context:
+                valueOrClassWithArgsOrContextkey = valueOrClassWithArgsOrContextkey.replace("$", "", 1)
+                return self._new_from_string(valueOrClassWithArgsOrContextkey, kwargs=kwargs)
+            elif valueOrClassWithArgsOrContextkey.startswith("$") and self.context:
+                valueOrClassWithArgsOrContextkey = valueOrClassWithArgsOrContextkey.replace("$", "", 1)
+                return getattr(self.context, valueOrClassWithArgsOrContextkey)
+            return self._new_from_string(valueOrClassWithArgsOrContextkey, kwargs=kwargs)
+        elif isinstance(valueOrClassWithArgsOrContextkey, dict):
+            x = [ self._get_value(key, valueOrClassWithArgsOrContextkey[key]) for key in valueOrClassWithArgsOrContextkey ]
+            return x[0] if len(x) == 1 else x #Si no es 1 que es?
+        elif isinstance(valueOrClassWithArgsOrContextkey, list):
+            return [ self._get_value(key, {}) for key in valueOrClassWithArgsOrContextkey ]
         else:
-            return valueOrClassWithArgs
-
+            return valueOrClassWithArgsOrContextkey
     
     def _new_from_string(self, arg, kwargs=None):
-        arg = arg.split()
+        arg_splited = arg.split()
         kwargs=kwargs or {}
         try:
-            return self._new_instance(arg[0], arg[1:],kwargs)
-        except (ImportError, AttributeError):
+            return self._new_instance(arg_splited[0], arg_splited[1:],kwargs)
+        except (ImportError, AttributeError, ValueError):
             if not kwargs:
                 return arg #No era una class, era un value
             raise
@@ -92,6 +100,6 @@ class Factory:
         class_name = splited[-1]
         module = importlib.import_module(module_name)
         class_ = getattr(module, class_name)
-        return class_(*args, **kwargs)
+        return class_(*[self._get_value(x) for x in args], **{k: self._get_value(v) for k,v in kwargs.items()})
 
 

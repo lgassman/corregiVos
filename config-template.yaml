@@ -1,32 +1,33 @@
 #App data
-org: obj1unq 
-user: lgassman
+org: <my_org> 
+user: <my_githu_buser>
 
-students: [yo.csv]
-#assignment_name: [2023s2-tp1-empanadas-gimenez]
-assignment_name: [2023s1---tp2---camion]
+students: [classroom_rooster.csv]
+assignment_name: [<my_assigments>]
 
 #action: train
 action: grade
 
 openai_api_key: openai.api_key 
 workers: 
-#- corregivos.domain.workers.DummyWorker
 - corregivos.domain.workers.Openai:
     model: text-davinci-003
-    #model: davinci:ft-scv:wlk-2023-05-17-17-35-30
+    openai_api_key: $openai_api_key
     temperature: 1
-    max_tokens: 1000
+    max_tokens: 1800
     top_p: 1
     frequency_penalty: 0
     presence_penalty: 0
-    teachers: [lgassman, dfortini,npasserini,palumbon,isaiaslafon, davidignacioduarte,  mayamatista, juanpdiaz-cpi,ferurquijo,51lv3str1, melanibr, natalia82, leoquilmes88, ferromu, ivanapr ]
+    teachers: [<list_of_github_user_teachers>]
+    prompt_suffix: $prompt_suffix
+    completion_suffix: $completion_suffix
 - corregivos.domain.workers.EndReviewWorker:
     base_model: davinci
     model_suffix: wollok
+    training_file: $training_file
+    output_training_file_data: $output_training_file_data
     commit_to_github: true
 
-#Logging
 logging:
   version: 1
   disable_existing_loggers: false
