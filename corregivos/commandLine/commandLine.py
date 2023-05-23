@@ -1,7 +1,7 @@
 import argparse
 import logging
 import logging.config
-from corregivos.types import FileOrValue, Yaml, Folder
+from corregivos.types import FileOrValue, Yaml, Folder, PathAware
 from collections.abc import Iterable
 
 # search in params first
@@ -42,8 +42,14 @@ class CommandLine:
             self._defaults[name] = kwargs.get("default",None)
             del kwargs["default"]
         if "type" in kwargs:
-            self._types[name]=kwargs.get("type")
+            _type=kwargs.get("type")
+            self._types[name]=_type
             del kwargs["type"]
+            if isinstance(_type, PathAware):
+                if not _type.context:
+                    _type.context=self
+                if not _type.context_key:
+                    _type.context_key="dir"
         self._arg_parser.add_argument(*args, **kwargs)
     
     def add_config(self, name, type=None, default=None):
@@ -54,7 +60,7 @@ class CommandLine:
 
     def declare_params (self):
         self.add_argument("--dir", type=Folder(create=True), help="Destination directory", default="~")
-        self.add_argument("--config", type=FileOrValue(parentFolder=self.directory, contentType=Yaml), help="Name of config file. If is not a path then use `dir` directory", default="config.yaml")
+        self.add_argument("--config", type=FileOrValue(contentType=Yaml), help="Name of config file. If is not a path then use `dir` directory", default="config.yaml")
     
     def directory(self):
         return self.dir

@@ -50,7 +50,7 @@ class Classroom(Github):
         self.user=user
         self.workers=workers or []
         self.action=action
-        self.logger().error(f"creando classroom para user {user} token {token} org {org} assignment:{assignment_name} dir:{dest_dir} workers:{workers} action: {action}" )
+        self.logger().debug(f"creando classroom para user {user} token {token} org {org} assignment:{assignment_name} dir:{dest_dir} workers:{workers} action: {action}" )
         for worker in self.workers:
             worker.github_object=self
        
